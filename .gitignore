@@ -1,2 +1,5 @@
 # for python environments
 .venv
+
+# API key is on this file. Don't push it on Github!!
+.env
