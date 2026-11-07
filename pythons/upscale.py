@@ -12,7 +12,8 @@ from PIL import Image
 
 # 設定
 SCALE = 4  # 2 or 4
-UPSCALE_MODEL = "nai-diffusion-5-curated"  # 必須になったmodel指定
+#UPSCALE_MODEL = "nai-diffusion-5-curated"  # 必須になったmodel指定
+UPSCALE_MODEL = "nai-diffusion-5-full-medium" 
 
 load_dotenv()
 api_key = os.environ.get("NOVELAI_API_KEY", "")
@@ -88,7 +89,6 @@ async def upscale_images(parent_folder_path: str):
                     f.write(data)
 
                 print(f"Saved: {output_file_path}")
-
             except Exception as e:
                 print(f"Error processing {image_path}: {e}")
 
