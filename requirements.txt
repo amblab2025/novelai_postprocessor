@@ -1,3 +1,4 @@
+dghs-imgutils
 httpx
 pillow
 python-dotenv

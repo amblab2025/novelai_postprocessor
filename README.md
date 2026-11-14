@@ -56,3 +56,15 @@ Converting `.png` image to `.jpeg`.
 ```
 
 ---
+
+## censor.py @FIXME
+
+
+### trouble shooting
+
+```bash
+pip uninstall onnxruntime onnxruntime-gpu -y
+pip install onnxruntime
+```
+
+---
