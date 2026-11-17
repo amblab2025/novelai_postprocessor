@@ -20,6 +20,10 @@ ENDPOINT_URL = "https://image.novelai.net/ai/generate-image-stream"
 TARGET_FOLDER_NAME = "_00_base"
 OUTPUT_FOLDER_NAME = "_01_base"
 
+# parameters speficied by .bat file
+V5_MODEL_KEY = "v5"
+V4_5_MODEL_KEY = "v4.5"
+
 # NovelAI Model
 # NOVEL_AI_MODEL = "nai-diffusion-5-full"
 NOVEL_AI_MODEL_V5 = "nai-diffusion-5-full-medium"  # 節約モード
@@ -84,8 +88,8 @@ def main_with_token(parent_folder_path, output_folder_path, model_type_param, en
         comment = json.loads(img_info.get("Comment", "{}"))
         prompt = comment.get("prompt", "")
         uc = comment.get("uc", "")
-        steps = STEPS_V5 if model_type_param == "V5" else STEPS_V4_5
-        scale = SCALE_V5 if model_type_param == "V5" else SCALE_V4_5 
+        steps = STEPS_V5 if model_type_param == V5_MODEL_KEY else STEPS_V4_5
+        scale = SCALE_V5 if model_type_param == V5_MODEL_KEY else SCALE_V4_5 
         #steps = comment.get("steps", 28)
         #scale = comment.get("scale", 5.0)
 
@@ -149,7 +153,7 @@ def main_with_token(parent_folder_path, output_folder_path, model_type_param, en
             "image_format": "png",
         }
 
-        if model_type_param == "V5":
+        if model_type_param == V5_MODEL_KEY:
             parameters.update({
                 "params_version": 4,
                 "ucPresetId": "heavy",
@@ -168,7 +172,7 @@ def main_with_token(parent_folder_path, output_folder_path, model_type_param, en
             })
 
         request_json = {
-            "model": NOVEL_AI_MODEL_V5 if model_type_param == "V5" else NOVEL_AI_MODEL_V4_5,
+            "model": NOVEL_AI_MODEL_V5 if model_type_param == V5_MODEL_KEY else NOVEL_AI_MODEL_V4_5,
             "input": prompt,
             "action": "img2img",
             "parameters": parameters,
@@ -229,7 +233,7 @@ def main_with_token(parent_folder_path, output_folder_path, model_type_param, en
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:
-        print("(1) folder path (2) V4.5/V5 parameter are required.")
+        print("(1) folder path (2) v4.5/v5 parameter are required.")
         exit(1)
     
     parent_folder_path = sys.argv[1]
