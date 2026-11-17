@@ -20,12 +20,18 @@ ENDPOINT_URL = "https://image.novelai.net/ai/generate-image-stream"
 TARGET_FOLDER_NAME = "_00_base"
 OUTPUT_FOLDER_NAME = "_01_base"
 
+# parameters speficied by .bat file
+V5_MODEL_KEY = "v5"
+V4_5_MODEL_KEY = "v4.5"
+
 # NovelAI Model
-# NOVEL_AI_MODEL = "nai-diffusion-4-5-full"
 # NOVEL_AI_MODEL = "nai-diffusion-5-full"
-NOVEL_AI_MODEL = "nai-diffusion-5-full-medium"  # 節約モード
-STEPS = 14
-SCALE = 6.5
+NOVEL_AI_MODEL_V5 = "nai-diffusion-5-full-medium"  # 節約モード
+NOVEL_AI_MODEL_V4_5 = "nai-diffusion-4-5-full"  # V4.5
+STEPS_V5 = 14
+SCALE_V5 = 6.5
+STEPS_V4_5 = 28
+SCALE_V4_5 = 6
 
 # Scaling factor
 SCALING_FACTOR = 1.5
@@ -56,7 +62,7 @@ def upscale_to_nearest_64(original_size, upscale_factor):
     return int(nearest)
 
 
-def main_with_token(parent_folder_path, output_folder_path, enhancement_strength=ENHANCE_STRENGTH):
+def main_with_token(parent_folder_path, output_folder_path, model_type_param, enhancement_strength=ENHANCE_STRENGTH):
     """
     generating image via API KEY
     """
@@ -82,8 +88,8 @@ def main_with_token(parent_folder_path, output_folder_path, enhancement_strength
         comment = json.loads(img_info.get("Comment", "{}"))
         prompt = comment.get("prompt", "")
         uc = comment.get("uc", "")
-        steps = STEPS
-        scale = SCALE
+        steps = STEPS_V5 if model_type_param == V5_MODEL_KEY else STEPS_V4_5
+        scale = SCALE_V5 if model_type_param == V5_MODEL_KEY else SCALE_V4_5 
         #steps = comment.get("steps", 28)
         #scale = comment.get("scale", 5.0)
 
@@ -102,79 +108,74 @@ def main_with_token(parent_folder_path, output_folder_path, enhancement_strength
             "Authorization": f"Bearer {api_key}",
         }
 
-        request_json = {
-            "model": NOVEL_AI_MODEL,
-            "input": prompt,
-            "action": "img2img",
-            "parameters": {
+        # common parameters (to be updated)
+        parameters = {
+            "width": width,
+            "height": height,
+            "scale": scale,
+            "sampler": "k_euler_ancestral",
+            "steps": steps,
+            "n_samples": 1,
+            "strength": enhancement_strength,
+            "noise": 0,
+            "autoSmea": False,
+            "dynamic_thresholding": False,
+            "controlnet_strength": 1,
+            "legacy": False,
+            "add_original_image": True,
+            "noise_schedule": "karras",
+            "legacy_v3_extend": False,
+            "use_coords": False,
+            "legacy_uc": False,
+            "normalize_reference_strength_multiple": True,
+            "inpaintImg2ImgStrength": 1,
+            "image": "image",
+            "characterPrompts": [],
+            "color_correct": False,
+            "v4_prompt": {
+                "caption": {
+                    "base_caption": prompt,
+                    "char_captions": char_captions
+                },
+                "use_coords": False,
+                "use_order": True
+            },
+            "v4_negative_prompt": {
+                "caption": {
+                    "base_caption": uc,
+                    "char_captions": []
+                },
+                "legacy_uc": False
+            },
+            "negative_prompt": uc,
+            "deliberate_euler_ancestral_bug": False,
+            "prefer_brownian": True,
+            "image_format": "png",
+        }
+
+        if model_type_param == V5_MODEL_KEY:
+            parameters.update({
                 "params_version": 4,
-                "width": width,
-                "height": height,
-                "scale": scale,
-                "sampler": "k_euler_ancestral",
-                "steps": steps,
-                "n_samples": 1,
-
-                # Enhancement の重要パラメータ
-                "strength": enhancement_strength,
-                "noise": 0,
-                "upscaled_enhance": True, 
-                "straight_alpha": True,
-                "legacy_uc": False,
-
-                #"ucPreset": 0, # v4.5 -> V5 (light weight)
-                #"qualityToggle": True, # v4.5 -> V5 (light weight)
                 "ucPresetId": "heavy",
                 "qualityPresetId": "standard",
                 "tag_hint_qt": 1,
                 "tag_hint_uc_preset": 2,
+                "straight_alpha": True,
+                "upscaled_enhance": True,
+            })
+        else:
+            parameters.update({
+                "params_version": 3,
+                "ucPreset": 0,  # heavy
+                "qualityToggle": True,
+                "cfg_rescale": 0,
+            })
 
-                "autoSmea": False,
-                "dynamic_thresholding": False,
-                "controlnet_strength": 1,
-                "legacy": False,
-                "add_original_image": True,
-                #"cfg_rescale": 0,  # v4.5 -> V5 (light weight)
-                "noise_schedule": "karras",
-                "legacy_v3_extend": False,
-                #"skip_cfg_above_sigma": None,  # v4.5 -> V5 (light weight)
-                "use_coords": False,
-                "legacy_uc": False,
-                "normalize_reference_strength_multiple": True,
-                "inpaintImg2ImgStrength": 1,
-
-                # ← multipart 内 image フィールド名
-                "image": "image",
-
-                "characterPrompts": [],
-                #"extra_noise_seed": 417717092,
-                "color_correct": False,
-
-                "v4_prompt": {
-                    "caption": {
-                        "base_caption": prompt,
-                        "char_captions": char_captions
-                    },
-                    "use_coords": False,
-                    "use_order": True
-                },
-
-                "v4_negative_prompt": {
-                    "caption": {
-                        "base_caption": uc,
-                        "char_captions": []
-                    },
-                    "legacy_uc": False
-                },
-
-                "negative_prompt": uc,
-                "deliberate_euler_ancestral_bug": False,
-                "prefer_brownian": True,
-                "image_format": "png",
-
-                #"stream": "msgpack"
-            },
-
+        request_json = {
+            "model": NOVEL_AI_MODEL_V5 if model_type_param == V5_MODEL_KEY else NOVEL_AI_MODEL_V4_5,
+            "input": prompt,
+            "action": "img2img",
+            "parameters": parameters,
             "use_new_shared_trial": True
         }
 
@@ -231,15 +232,17 @@ def main_with_token(parent_folder_path, output_folder_path, enhancement_strength
 
 
 if __name__ == '__main__':
-    if len(sys.argv) < 2:
-        print("folder path is required.")
+    if len(sys.argv) < 3:
+        print("(1) folder path (2) v4.5/v5 parameter are required.")
         exit(1)
     
     parent_folder_path = sys.argv[1]
+    model_type_param = sys.argv[2]
     output_folder_path = os.path.join(parent_folder_path, OUTPUT_FOLDER_NAME)
     if not os.path.exists(output_folder_path):
         os.makedirs(output_folder_path, exist_ok=True)
 
+    print(f"model you choice: {model_type_param}")
 
     # parameter
     while True:
@@ -260,5 +263,9 @@ if __name__ == '__main__':
     # Step1: Generating Single Image
     #
     print("=" * 30)
-    generated_image_file_path = main_with_token(parent_folder_path=parent_folder_path, output_folder_path=output_folder_path, enhancement_strength=enhancement_strength)
+    generated_image_file_path = main_with_token(
+        parent_folder_path=parent_folder_path, 
+        output_folder_path=output_folder_path, 
+        model_type_param=model_type_param,
+        enhancement_strength=enhancement_strength)
     print("End.")
